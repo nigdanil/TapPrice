@@ -35,3 +35,22 @@ func GetAllCategories(db *sql.DB) ([]Category, error) {
 
 	return categories, nil
 }
+
+func GetCategoryByID(db *sql.DB, id int64) (*Category, error) {
+	var c Category
+	var venueID sql.NullInt64
+
+	row := db.QueryRow(`SELECT id, venue_id, name FROM categories WHERE id = $1`, id)
+	err := row.Scan(&c.ID, &venueID, &c.Name)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("get category by id: %w", err)
+	}
+	if venueID.Valid {
+		c.VenueID = &venueID.Int64
+	}
+
+	return &c, nil
+}

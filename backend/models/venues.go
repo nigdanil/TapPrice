@@ -35,3 +35,22 @@ func GetAllVenues(db *sql.DB) ([]Venue, error) {
 
 	return venues, nil
 }
+
+func GetVenueByID(db *sql.DB, id int64) (*Venue, error) {
+	var v Venue
+	var slug sql.NullString
+
+	row := db.QueryRow(`SELECT id, name, slug FROM venues WHERE id = $1`, id)
+	err := row.Scan(&v.ID, &v.Name, &slug)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("get venue by id: %w", err)
+	}
+	if slug.Valid {
+		v.Slug = slug.String
+	}
+
+	return &v, nil
+}

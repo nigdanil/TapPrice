@@ -25,7 +25,9 @@ func RegisterRoutes(r *mux.Router, db *sql.DB) {
 
 	r.HandleFunc("/products", getAllProductsHandler(db)).Methods("GET")
 	r.HandleFunc("/product/{id}", getProductHandler(db)).Methods("GET")
+	r.HandleFunc("/category/{id}", getCategoryHandler(db)).Methods("GET")
 	r.HandleFunc("/categories", getAllCategoriesHandler(db)).Methods("GET")
+	r.HandleFunc("/venue/{id}", getVenueHandler(db)).Methods("GET")
 	r.HandleFunc("/venues", getAllVenuesHandler(db)).Methods("GET")
 	r.HandleFunc("/logout", LogoutHandler).Methods("GET")
 
@@ -130,5 +132,53 @@ func getAllVenuesHandler(db *sql.DB) http.HandlerFunc {
 
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(venues)
+	}
+}
+
+func getCategoryHandler(db *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		idStr := mux.Vars(r)["id"]
+		id, err := strconv.ParseInt(idStr, 10, 64)
+		if err != nil {
+			http.Error(w, "Invalid ID", http.StatusBadRequest)
+			return
+		}
+
+		category, err := models.GetCategoryByID(db, id)
+		if err != nil {
+			http.Error(w, "Failed to get category", http.StatusInternalServerError)
+			return
+		}
+		if category == nil {
+			http.Error(w, "Category not found", http.StatusNotFound)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(category)
+	}
+}
+
+func getVenueHandler(db *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		idStr := mux.Vars(r)["id"]
+		id, err := strconv.ParseInt(idStr, 10, 64)
+		if err != nil {
+			http.Error(w, "Invalid ID", http.StatusBadRequest)
+			return
+		}
+
+		venue, err := models.GetVenueByID(db, id)
+		if err != nil {
+			http.Error(w, "Failed to get venue", http.StatusInternalServerError)
+			return
+		}
+		if venue == nil {
+			http.Error(w, "Venue not found", http.StatusNotFound)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(venue)
 	}
 }

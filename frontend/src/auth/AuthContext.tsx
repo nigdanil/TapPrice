@@ -1,31 +1,25 @@
+// D:\TapPrice\frontend\src\auth\AuthContext.tsx
 import { createContext, useContext, useEffect, useState } from 'react'
 import Cookies from 'js-cookie'
-import axios from 'axios'
 
 const AuthContext = createContext<any>(null)
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  const [user, setUser] = useState<any>(null)
+  const [user, setUser] = useState<boolean | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const fetchUser = async () => {
-      try {
-        const res = await axios.get('/me') // ❗ должен быть эндпоинт на бэке
-        setUser(res.data)
-      } catch {
-        setUser(null)
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchUser()
+    const token = Cookies.get('access_token')
+    setUser(token ? true : null)
+    setLoading(false)
   }, [])
 
-  const login = (data: any) => setUser(data)
+  const login = () => {
+    setUser(true)
+  }
+
   const logout = () => {
-    Cookies.remove('token') // или .cookie используемый в бэке
+    Cookies.remove('access_token')
     setUser(null)
   }
 

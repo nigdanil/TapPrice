@@ -1,3 +1,4 @@
+// D:\TapPrice\frontend\src\pages\LoginPage.tsx
 import { useForm } from 'react-hook-form'
 import { Box, TextField, Button, Typography } from '@mui/material'
 import { useAuth } from '../auth/AuthContext'
@@ -11,11 +12,16 @@ export default function LoginPage() {
 
   const onSubmit = async (data: any) => {
     try {
-      const res = await axios.post('/login', data, { withCredentials: true })
-      login(res.data)
+      // Отправляем логин/пароль, сервер ставит JWT в cookie
+      await axios.post('/api/login', data, { withCredentials: true })
+
+      // Сохраняем пользователя вручную (пока без роли)
+      login({ username: data.username, role: 'unknown' })
+
+      // Переход в админку
       navigate('/dashboard')
     } catch (err) {
-      alert('Ошибка входа')
+      alert('Ошибка входа: неверный логин или пароль')
     }
   }
 
