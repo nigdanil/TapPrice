@@ -1,0 +1,24 @@
+# Node
+node_modules/
+npm-debug.log
+yarn-error.log
+.env
+
+# React build
+frontend/build/
+
+# VSCode settings
+.vscode/
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+debug.log
+
+# Docker
+*.pid
+docker-compose.override.yml

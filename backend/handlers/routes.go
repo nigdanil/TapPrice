@@ -1,0 +1,134 @@
+package handlers
+
+import (
+	"database/sql"
+	"encoding/json"
+	"log"
+	"net/http"
+	"strconv"
+
+	"github.com/gorilla/mux"
+
+	"github.com/nigdanil/tapprice/middleware"
+	"github.com/nigdanil/tapprice/models"
+)
+
+// RegisterRoutes настраивает все маршруты API
+func RegisterRoutes(r *mux.Router, db *sql.DB) {
+	// Public
+	r.HandleFunc("/ping", func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte("pong"))
+	}).Methods("GET")
+
+	r.Handle("/register", middleware.RequireAuth(http.HandlerFunc(RegisterHandler(db)))).Methods("POST")
+	r.HandleFunc("/login", LoginHandler(db)).Methods("POST")
+
+	r.HandleFunc("/products", getAllProductsHandler(db)).Methods("GET")
+	r.HandleFunc("/product/{id}", getProductHandler(db)).Methods("GET")
+	r.HandleFunc("/categories", getAllCategoriesHandler(db)).Methods("GET")
+	r.HandleFunc("/venues", getAllVenuesHandler(db)).Methods("GET")
+	r.HandleFunc("/logout", LogoutHandler).Methods("GET")
+
+	// Защищённый маршрут — только для admin
+	r.Handle("/admin-only", middleware.RequireRole("admin", http.HandlerFunc(AdminOnlyHandler))).Methods("GET")
+
+	r.Handle("/users", middleware.RequireRole("admin", GetAllUsersHandler(db))).Methods("GET")
+	r.Handle("/user/{id}", middleware.RequireRole("admin", DeleteUserHandler(db))).Methods("DELETE")
+	r.Handle("/user/{id}", middleware.RequireRole("admin", UpdateUserHandler(db))).Methods("PUT")
+
+	r.Handle("/change-password", middleware.RequireAuth(ChangePasswordHandler(db))).Methods("POST")
+
+	r.Handle("/products/import", middleware.RequireAuth(http.HandlerFunc(ImportProductsHandler(db)))).Methods("POST")
+	r.Handle("/product", middleware.RequireAuth(http.HandlerFunc(CreateProductHandler(db)))).Methods("POST")
+	r.Handle("/product/{id}", middleware.RequireAuth(http.HandlerFunc(DeleteProductHandler(db)))).Methods("DELETE")
+	r.Handle("/products/delete", middleware.RequireAuth(http.HandlerFunc(DeleteProductsHandler(db)))).Methods("POST")
+
+	r.Handle("/products", middleware.RequireAuth(http.HandlerFunc(CreateProductsHandler(db)))).Methods("POST")
+	r.Handle("/audit-log", middleware.RequireRole("admin", GetAuditLogHandler(db))).Methods("GET")
+
+}
+
+func getProductHandler(db *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		idStr := mux.Vars(r)["id"]
+		id, err := strconv.ParseInt(idStr, 10, 64)
+		if err != nil {
+			http.Error(w, "Invalid ID", http.StatusBadRequest)
+			return
+		}
+
+		product, err := models.GetProductByID(db, id)
+		if err != nil {
+			http.Error(w, "Product not found", http.StatusNotFound)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(product)
+	}
+}
+
+func getAllProductsHandler(db *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var venueID, categoryID *int64
+
+		if v := r.URL.Query().Get("venue_id"); v != "" {
+			id, err := strconv.ParseInt(v, 10, 64)
+			if err != nil {
+				http.Error(w, "Invalid venue_id", http.StatusBadRequest)
+				return
+			}
+			venueID = &id
+		}
+
+		if c := r.URL.Query().Get("category_id"); c != "" {
+			id, err := strconv.ParseInt(c, 10, 64)
+			if err != nil {
+				http.Error(w, "Invalid category_id", http.StatusBadRequest)
+				return
+			}
+			categoryID = &id
+		}
+
+		products, err := models.GetAllProducts(db, venueID, categoryID)
+		if err != nil {
+			http.Error(w, "Failed to fetch products", http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(products)
+	}
+}
+
+func getAllCategoriesHandler(db *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		log.Println("📥 Запрос: GET /categories")
+
+		categories, err := models.GetAllCategories(db)
+		if err != nil {
+			log.Printf("❌ Ошибка при получении категорий: %v", err)
+			http.Error(w, "Failed to fetch categories", http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(categories)
+	}
+}
+
+func getAllVenuesHandler(db *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		log.Println("📥 Запрос: GET /venues")
+
+		venues, err := models.GetAllVenues(db)
+		if err != nil {
+			log.Printf("❌ Ошибка при получении площадок: %v", err)
+			http.Error(w, "Failed to fetch venues", http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(venues)
+	}
+}
