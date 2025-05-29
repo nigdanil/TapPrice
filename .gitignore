@@ -4,10 +4,10 @@ npm-debug.log
 yarn-error.log
 .env
 
-# React build
+# React build (только результат сборки, а не весь фронт)
 frontend/build/
 
-# VSCode settings
+# VSCode
 .vscode/
 
 # OS junk
