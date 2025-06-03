@@ -54,3 +54,27 @@ func GetCategoryByID(db *sql.DB, id int64) (*Category, error) {
 
 	return &c, nil
 }
+func DeleteCategoryByID(db *sql.DB, id int64) error {
+	result, err := db.Exec(`DELETE FROM categories WHERE id = $1`, id)
+	if err != nil {
+		return fmt.Errorf("delete category: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("rows affected: %w", err)
+	}
+	if rowsAffected == 0 {
+		return sql.ErrNoRows
+	}
+
+	return nil
+}
+
+func UpdateCategoryByID(db *sql.DB, id int64, c *Category) error {
+	_, err := db.Exec(`UPDATE categories SET name = $1, venue_id = $2 WHERE id = $3`, c.Name, c.VenueID, id)
+	if err != nil {
+		return fmt.Errorf("update category: %w", err)
+	}
+	return nil
+}

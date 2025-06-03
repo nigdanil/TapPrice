@@ -5,7 +5,7 @@ import ProtectedRoute from '../auth/ProtectedRoute'
 // Страницы
 import LoginPage from '../pages/LoginPage'
 import ProductsPage from '../pages/ProductsPage'
-import MenuPage from '../pages/MenuPage'
+import ProductGalleryPage from '../pages/ProductGalleryPage' // ← добавлено
 
 // Панель администратора
 import DashboardLayout from '../layout/DashboardLayout'
@@ -16,10 +16,10 @@ export default function AppRoutes() {
     <AuthProvider>
       <Routes>
         {/* Публичные маршруты */}
-        <Route path="/" element={<Navigate to="/menu" />} />
+        <Route path="/" element={<Navigate to="/gallery" />} /> {/* ← теперь ведёт в /gallery */}
         <Route path="/login" element={<LoginPage />} />
-        <Route path="/menu" element={<MenuPage />} />
         <Route path="/products" element={<ProductsPage />} />
+        <Route path="/gallery/*" element={<ProductGalleryPage />} /> {/* ← добавлен маршрут */}
 
         {/* Защищённые маршруты с layout и outlet */}
         <Route

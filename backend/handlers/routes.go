@@ -25,10 +25,15 @@ func RegisterRoutes(r *mux.Router, db *sql.DB) {
 
 	r.HandleFunc("/products", getAllProductsHandler(db)).Methods("GET")
 	r.HandleFunc("/product/{id}", getProductHandler(db)).Methods("GET")
+
 	r.HandleFunc("/category/{id}", getCategoryHandler(db)).Methods("GET")
+	r.Handle("/category/{id}", middleware.RequireAuth(DeleteCategoryHandler(db))).Methods("DELETE")
+
 	r.HandleFunc("/categories", getAllCategoriesHandler(db)).Methods("GET")
 	r.HandleFunc("/venue/{id}", getVenueHandler(db)).Methods("GET")
+	r.Handle("/venue/{id}", middleware.RequireAuth(DeleteVenueHandler(db))).Methods("DELETE")
 	r.HandleFunc("/venues", getAllVenuesHandler(db)).Methods("GET")
+
 	r.HandleFunc("/logout", LogoutHandler).Methods("GET")
 
 	// Защищённый маршрут — только для admin
@@ -47,6 +52,10 @@ func RegisterRoutes(r *mux.Router, db *sql.DB) {
 
 	r.Handle("/products", middleware.RequireAuth(http.HandlerFunc(CreateProductsHandler(db)))).Methods("POST")
 	r.Handle("/audit-log", middleware.RequireRole("admin", GetAuditLogHandler(db))).Methods("GET")
+
+	r.Handle("/category/{id}", middleware.RequireAuth(UpdateCategoryHandler(db))).Methods("PUT")
+	r.Handle("/venue/{id}", middleware.RequireAuth(UpdateVenueHandler(db))).Methods("PUT")
+	r.Handle("/product/{id}", middleware.RequireAuth(UpdateProductHandler(db))).Methods("PUT")
 
 }
 
@@ -180,5 +189,128 @@ func getVenueHandler(db *sql.DB) http.HandlerFunc {
 
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(venue)
+	}
+}
+
+func DeleteCategoryHandler(db *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		idStr := mux.Vars(r)["id"]
+		id, err := strconv.ParseInt(idStr, 10, 64)
+		if err != nil {
+			http.Error(w, "Invalid category ID", http.StatusBadRequest)
+			return
+		}
+
+		err = models.DeleteCategoryByID(db, id)
+		if err != nil {
+			if err == sql.ErrNoRows {
+				http.Error(w, "Category not found", http.StatusNotFound)
+			} else {
+				http.Error(w, "Failed to delete category", http.StatusInternalServerError)
+			}
+			return
+		}
+
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`{"message":"Category deleted successfully"}`))
+	}
+}
+
+func DeleteVenueHandler(db *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		idStr := mux.Vars(r)["id"]
+		id, err := strconv.ParseInt(idStr, 10, 64)
+		if err != nil {
+			http.Error(w, "Invalid venue ID", http.StatusBadRequest)
+			return
+		}
+
+		err = models.DeleteVenueByID(db, id)
+		if err != nil {
+			if err == sql.ErrNoRows {
+				http.Error(w, "Venue not found", http.StatusNotFound)
+			} else {
+				http.Error(w, "Failed to delete venue", http.StatusInternalServerError)
+			}
+			return
+		}
+
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`{"message":"Venue deleted successfully"}`))
+	}
+}
+
+func UpdateCategoryHandler(db *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		idStr := mux.Vars(r)["id"]
+		id, err := strconv.ParseInt(idStr, 10, 64)
+		if err != nil {
+			http.Error(w, "Invalid category ID", http.StatusBadRequest)
+			return
+		}
+
+		var cat models.Category
+		if err := json.NewDecoder(r.Body).Decode(&cat); err != nil {
+			http.Error(w, "Invalid JSON", http.StatusBadRequest)
+			return
+		}
+
+		if err := models.UpdateCategoryByID(db, id, &cat); err != nil {
+			http.Error(w, "Failed to update category", http.StatusInternalServerError)
+			return
+		}
+
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`{"message":"Category updated successfully"}`))
+	}
+}
+
+func UpdateVenueHandler(db *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		idStr := mux.Vars(r)["id"]
+		id, err := strconv.ParseInt(idStr, 10, 64)
+		if err != nil {
+			http.Error(w, "Invalid venue ID", http.StatusBadRequest)
+			return
+		}
+
+		var venue models.Venue
+		if err := json.NewDecoder(r.Body).Decode(&venue); err != nil {
+			http.Error(w, "Invalid JSON", http.StatusBadRequest)
+			return
+		}
+
+		if err := models.UpdateVenueByID(db, id, &venue); err != nil {
+			http.Error(w, "Failed to update venue", http.StatusInternalServerError)
+			return
+		}
+
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`{"message":"Venue updated successfully"}`))
+	}
+}
+
+func UpdateProductHandler(db *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		idStr := mux.Vars(r)["id"]
+		id, err := strconv.ParseInt(idStr, 10, 64)
+		if err != nil {
+			http.Error(w, "Invalid product ID", http.StatusBadRequest)
+			return
+		}
+
+		var product models.Product
+		if err := json.NewDecoder(r.Body).Decode(&product); err != nil {
+			http.Error(w, "Invalid JSON", http.StatusBadRequest)
+			return
+		}
+
+		if err := models.UpdateProductByID(db, id, &product); err != nil {
+			http.Error(w, "Failed to update product", http.StatusInternalServerError)
+			return
+		}
+
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`{"message":"Product updated successfully"}`))
 	}
 }

@@ -102,3 +102,15 @@ func DeleteProductsByID(db *sql.DB, ids []int64) error {
 	_, err := db.Exec(query, pq.Array(ids))
 	return err
 }
+
+func UpdateProductByID(db *sql.DB, id int64, p *Product) error {
+	_, err := db.Exec(`
+		UPDATE products 
+		SET name = $1, description = $2, composition = $3, cert_links = $4 
+		WHERE id = $5`,
+		p.Name, p.Description, p.Composition, pq.Array(p.CertLinks), id)
+	if err != nil {
+		return fmt.Errorf("update product: %w", err)
+	}
+	return nil
+}
